@@ -1,0 +1,12 @@
+{
+  "name": "my-blog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "마크다운을 정적 블로그로 굽는 사이트. 프레임워크·의존성 없음.",
+  "scripts": {
+    "build": "node src/build.mjs",
+    "serve": "node src/serve.mjs",
+    "test": "node --test \"src/*.test.mjs\""
+  }
+}

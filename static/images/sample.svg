@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400" role="img" aria-label="자리표시자 이미지">
+  <!-- 이미지 렌더링 확인용 자리표시자. 외부 요청 없이 자체 완결되도록 SVG로 둔다.
+       라이트/다크 양쪽에서 읽히도록 SVG 안에서도 prefers-color-scheme을 쓴다. -->
+  <style>
+    .bg { fill: #eceef1; }
+    .fg { fill: #6b7480; }
+    .line { stroke: #c9cdd3; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #22262c; }
+      .fg { fill: #8b95a1; }
+      .line { stroke: #363c44; }
+    }
+  </style>
+  <rect class="bg" width="800" height="400" rx="12"/>
+  <g class="line" stroke-width="2" fill="none">
+    <path d="M0 300 L220 180 L380 260 L560 120 L800 250"/>
+  </g>
+  <circle class="fg" cx="620" cy="96" r="34" opacity="0.5"/>
+  <text class="fg" x="400" y="212" text-anchor="middle"
+        font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="26">800 × 400 자리표시자</text>
+</svg>

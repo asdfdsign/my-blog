@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- 파비콘. 외부 요청 없이 자체 완결되도록 SVG로 둔다. -->
+  <style>
+    .plate { fill: #2c5f8a; }
+    .mark { fill: #fbfbfa; }
+    @media (prefers-color-scheme: dark) {
+      .plate { fill: #8fbce8; }
+      .mark { fill: #16181c; }
+    }
+  </style>
+  <rect class="plate" width="64" height="64" rx="14"/>
+  <g class="mark">
+    <rect x="16" y="19" width="32" height="4" rx="2"/>
+    <rect x="16" y="30" width="32" height="4" rx="2"/>
+    <rect x="16" y="41" width="20" height="4" rx="2"/>
+  </g>
+</svg>

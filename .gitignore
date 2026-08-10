@@ -1,0 +1,11 @@
+# 빌드 산출물 — 언제든 다시 만들 수 있다
+dist/
+
+# 의존성은 쓰지 않지만, 실수로 npm install 했을 때를 대비
+node_modules/
+
+# OS/에디터
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
