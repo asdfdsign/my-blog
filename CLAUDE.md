@@ -134,6 +134,13 @@ CommonMark 완전 준수가 목표가 아니다. **블로그 글을 쓰는 데 �
 node src/build.mjs
 ```
 
+초안까지 포함해 화면을 확인할 때. **배포용이 아니다** — 초안에는 "초안" 배지와 안내가 붙고,
+RSS·사이트맵에는 어느 모드에서도 초안이 들어가지 않는다.
+
+```bash
+node src/build.mjs --drafts
+```
+
 ```bash
 node --test "src/*.test.mjs"
 ```

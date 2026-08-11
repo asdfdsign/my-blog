@@ -69,7 +69,7 @@ export function indexPage(posts) {
     .map(
       (post) => `  <li class="post-item">
     <h2><a href="/posts/${post.slug}/">${escapeHtml(post.title)}</a></h2>
-    <p class="meta">${dateEl(post.date)}${tagList(post.tags)}</p>
+    <p class="meta">${dateEl(post.date)}${draftBadge(post)}${tagList(post.tags)}</p>
     ${post.description ? `<p class="excerpt">${escapeHtml(post.description)}</p>` : ''}
   </li>`,
     )
@@ -85,8 +85,9 @@ ${posts.length ? `<ul class="post-list">\n${items}\n</ul>` : '<p>아직 발행�
 export function postPage(post) {
   const body = `<article class="post">
   <header class="post-header">
+    ${post.draft ? '<p class="draft-notice">초안입니다. 공개되지 않은 글이며 배포본에는 들어가지 않습니다.</p>' : ''}
     <h1>${escapeHtml(post.title)}</h1>
-    <p class="meta">${dateEl(post.date)}${tagList(post.tags)}</p>
+    <p class="meta">${dateEl(post.date)}${draftBadge(post)}${tagList(post.tags)}</p>
   </header>
   ${post.html}
 </article>
@@ -118,6 +119,11 @@ export function staticPage(page) {
 
 function dateEl(date) {
   return `<time datetime="${date}">${formatDate(date)}</time>`;
+}
+
+// --drafts로 빌드했을 때만 붙는다. 초안이 섞인 화면을 공개본으로 착각하지 않게 하는 표시다.
+function draftBadge(post) {
+  return post.draft ? '<span class="draft-badge">초안</span>' : '';
 }
 
 function tagList(tags) {

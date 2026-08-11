@@ -468,6 +468,25 @@ th {
   font-size: 0.8125rem;
 }
 
+/* --drafts 빌드에서만 나타난다. 새 색을 만들지 않고 액센트를 빌려 쓴다. */
+.draft-badge {
+  padding: 0.1em 0.5em;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.draft-notice {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px dashed var(--accent);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 0.9375rem;
+}
+
 .back {
   margin-top: var(--space-6);
   padding-top: var(--space-4);

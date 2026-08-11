@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
 import site from '../site.config.mjs';
 import { renderMarkdown, escapeHtml } from './markdown.mjs';
@@ -17,6 +18,10 @@ const STATIC = path.join(ROOT, 'static');
 const DIST = path.join(ROOT, 'dist');
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+// --drafts: 초안까지 포함해 빌드한다. 글을 쓰는 중에 화면을 확인하려고 프런트매터를
+// 고쳤다 되돌리는 일을 없애려는 것이다. 이 산출물은 배포용이 아니다.
+const { values: flags } = parseArgs({ options: { drafts: { type: 'boolean', default: false } } });
 
 function fail(message) {
   console.error(`\n빌드 실패: ${message}\n`);
@@ -65,7 +70,8 @@ function loadPosts() {
     const { data, body } = parseFrontmatter(raw);
     const where = path.relative(ROOT, file);
 
-    if (data.draft === 'true') continue;
+    const isDraft = data.draft === 'true';
+    if (isDraft && !flags.drafts) continue;
 
     if (!data.title) fail(`${where} — 프런트매터에 'title'이 없습니다.`);
     if (!data.date) fail(`${where} — 프런트매터에 'date'가 없습니다.`);
@@ -75,6 +81,7 @@ function loadPosts() {
 
     posts.push({
       slug,
+      draft: isDraft,
       title: data.title,
       date: data.date,
       description: data.description || '',
@@ -173,10 +180,19 @@ function build() {
 
   if (fs.existsSync(STATIC)) fs.cpSync(STATIC, DIST, { recursive: true });
 
-  write('rss.xml', renderRss(posts));
-  write('sitemap.xml', renderSitemap(posts, pages));
+  // 피드와 사이트맵에는 초안을 넣지 않는다. --drafts는 화면 확인용이지
+  // 발행이 아니고, 실수로 이 산출물을 올리더라도 초안이 새어 나가면 안 된다.
+  const published = posts.filter((post) => !post.draft);
+  write('rss.xml', renderRss(published));
+  write('sitemap.xml', renderSitemap(published, pages));
 
-  console.log(`빌드 완료 — 글 ${posts.length}개, 페이지 ${pages.length}개 → ${path.relative(ROOT, DIST)}/`);
+  const drafts = posts.length - published.length;
+  console.log(
+    `빌드 완료 — 글 ${published.length}개, 페이지 ${pages.length}개 → ${path.relative(ROOT, DIST)}/`,
+  );
+  if (drafts > 0) {
+    console.log(`초안 ${drafts}개를 함께 넣었습니다. 이 산출물은 배포용이 아닙니다.`);
+  }
 }
 
 build();
