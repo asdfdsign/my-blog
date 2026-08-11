@@ -30,6 +30,9 @@ src/
 static/
   styles.css         # 전체 스타일 (단일 파일)
   theme.js           # 다크 모드 토글
+scripts/             # 로컬 자동화. 사이트 빌드와 무관하고 dist/에 들어가지 않는다
+  study-check.mjs    # STUDY 회차 점검 — 초안 생성, 밀린 날 계산
+  study-notify.ps1   # Windows 예약 작업 래퍼 — 위 스크립트 실행 후 알림 팝업
 dist/                # 빌드 산출물 — git 추적 안 함, 손으로 수정 금지
 ```
 
@@ -158,12 +161,24 @@ node src/serve.mjs
 - `<N>`은 회차 번호로 1씩 증가한다. 날짜와 무관하게 순서를 센다
 - `<YYMMDD>`는 그 글이 다루는 날짜
 
-작성 시점은 **오후 6시경**을 기준으로 삼는다. 자동화(예약 작업)는 두지 않기로 했다 —
-내용은 그날 무엇을 했는지에 달려 있어서 사람이 써야 하고, 빈 껍데기가 쌓이는 걸 막기 위해서다.
+작성 시점은 **오후 6시**를 기준으로 삼고, 두 겹으로 챙긴다.
 
-**세션을 시작하면 밀린 회차를 먼저 확인한다.** `content/posts/claude-code-study*.md`에서
-마지막 회차 번호와 날짜를 읽고, 오늘까지 빠진 날이 있으면 사용자가 묻기 전에 알린다.
-PC가 꺼져 있어 며칠 건너뛰었을 수 있으므로, 며칠치가 밀렸는지 함께 알려준다.
+**1단 — 세션을 시작할 때 확인한다. 이쪽이 항상 동작하는 경로다.**
+`content/posts/claude-code-study*.md`에서 마지막 회차 번호와 날짜를 읽고, 오늘까지 빠진 날이
+있으면 사용자가 묻기 전에 알린다. PC가 며칠 꺼져 있었을 수 있으므로 며칠치가 밀렸는지 함께
+알려준다. **`draft: true`인 글은 아직 안 쓴 것으로 센다** — 2단이 만들어 둔 빈 초안이기 때문이다.
+
+**2단 — Windows 예약 작업 `my-blog-study-daily`.** 매일 18:00에 `scripts/study-notify.ps1`을
+실행한다. PC가 꺼져 있었으면 다음 부팅 후에 실행된다(`StartWhenAvailable`). 하는 일은 오늘
+회차의 **빈 초안 생성과 화면 알림뿐이고 내용은 만들지 않는다** — 그날 무엇을 했는지는 사람만
+안다. 초안은 `draft: true`라 채우기 전까지 빌드에서 제외되고, 다 쓰면 그 줄을 지운다.
+
+예약 작업이 없어도 1단은 그대로 동작한다. 없애려면:
+`Unregister-ScheduledTask -TaskName 'my-blog-study-daily'`
+
+`study-notify.ps1`은 **ASCII로만 쓴다.** Windows PowerShell 5.1은 BOM 없는 `.ps1`을 ANSI로
+읽어서 한글이 깨진다. 어느 PowerShell이 작업을 실행할지 보장할 수 없으므로, 한글 문구는 전부
+Node 쪽 stdout에서 오게 하고 PS 쪽은 UTF-8로 디코딩만 한다.
 
 ## 환경 메모
 
