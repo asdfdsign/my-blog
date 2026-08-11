@@ -258,7 +258,7 @@ h1 {
 }
 
 h2 {
-  font-size: 1.375rem;
+  font-size: 1.5rem;
 }
 
 h3 {
@@ -267,6 +267,25 @@ h3 {
 
 h4 {
   font-size: 1rem;
+  color: var(--text-muted);
+}
+
+/* 글 안에서 h2는 가장 큰 구획이다. 크기 차이(h2 24px / h3 18px)만으로는 같은 급으로
+   읽히기 때문에, 위 여백과 실선으로 확실히 갈라 준다. 목록 페이지의 .post-item h2는
+   이미 자기 구분선이 있으므로 여기 규칙이 닿지 않게 .post 안으로 한정한다. */
+.post h2 {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+/* 제목 바로 밑에 오는 첫 구획까지 여백을 다 주면 글머리가 휑해진다. */
+.post-header + h2 {
+  margin-top: var(--space-4);
+}
+
+.post h4 {
+  margin-top: var(--space-4);
 }
 
 p,
@@ -472,7 +491,7 @@ th {
   }
 
   h2 {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
   }
 
   h3 {
