@@ -7,6 +7,7 @@
   "scripts": {
     "build": "node src/build.mjs",
     "serve": "node src/serve.mjs",
+    "import": "node scripts/import-obsidian.mjs",
     "test": "node --test \"src/*.test.mjs\""
   }
 }

@@ -33,6 +33,7 @@ static/
 scripts/             # 로컬 자동화. 사이트 빌드와 무관하고 dist/에 들어가지 않는다
   study-check.mjs    # STUDY 회차 점검 — 확인 전용, 파일을 만들지 않는다
   study-notify.ps1   # Windows 예약 작업 래퍼 — 위 스크립트 실행 후 알림 팝업
+  import-obsidian.mjs # 옵시디언 볼트 → content/posts. 볼트는 읽기만 한다
 dist/                # 빌드 산출물 — git 추적 안 함, 손으로 수정 금지
 ```
 
@@ -150,6 +151,24 @@ node src/serve.mjs
 1. `content/posts/<slug>.md` 생성 — 파일명이 URL이 되므로 소문자 하이픈 케밥 케이스로.
 2. 프런트매터에 최소한 `title`, `date` 작성.
 3. 빌드 후 브라우저에서 확인. 라이트/다크, 좁은 폭/넓은 폭 **네 조합**을 다 본다.
+
+## 옵시디언에서 가져오기
+
+`scripts/import-obsidian.mjs`가 볼트의 글을 `content/posts/`로 옮긴다. **볼트는 읽기만 한다.**
+
+```bash
+node scripts/import-obsidian.mjs --list
+node scripts/import-obsidian.mjs "글 제목" --slug english-slug --dry-run
+```
+
+- 제목이 ASCII가 아니면 `--slug`를 **반드시** 받는다. 한글 주소는 퍼센트 인코딩으로 깨져 보인다
+- 태그만 있는 줄(`#정리중`)은 프런트매터로 올린다. 본문에 두면 글자로 찍힌다
+- `정리중`·`draft`·`wip`·`초안` 태그가 있으면 자동으로 `draft: true`
+- 위키링크 `[[대상|표시]]`는 파서가 모르므로 일반 텍스트로 바꾼다
+- 이미지 임베드 `![[...]]`는 **자동 변환하지 않고 경고만 한다** — 파일도 같이 옮겨야 해서 사람이 판단할 일이다
+- 문장 중간에 섞인 태그는 건드리지 않는다. 지우면 글이 바뀐다
+
+본문 글자는 고치지 않는다. 오타든 메모든 원문 그대로 옮기고, 고칠지는 사용자가 정한다.
 
 ## STUDY 시리즈
 
