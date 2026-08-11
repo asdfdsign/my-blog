@@ -31,6 +31,11 @@ const MIME = {
 const { values } = parseArgs({ options: { port: { type: 'string', short: 'p' } } });
 const port = Number(values.port ?? 8080);
 
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  console.error(`\n포트 번호가 잘못됐습니다: ${values.port}\n1~65535 사이의 정수를 넣으세요.\n`);
+  process.exit(1);
+}
+
 // 요청 경로를 dist/ 안의 실제 파일로 옮긴다. 디렉터리는 index.html로 떨어뜨려
 // 확장자 없는 깔끔한 URL(/posts/foo/)이 동작하게 한다.
 function resolveFile(urlPath) {
@@ -79,6 +84,24 @@ if (!fs.existsSync(DIST)) {
   console.error(`dist/ 가 없습니다. 먼저 빌드하세요:\n  node src/build.mjs\n`);
   process.exit(1);
 }
+
+// listen 실패는 'error' 이벤트로 온다. 잡지 않으면 Node가 스택 트레이스를 뱉는데,
+// 실제 원인은 "포트가 이미 쓰이는 중" 같은 단순한 것이라 읽는 사람만 손해다.
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(
+      `\n${port} 포트가 이미 사용 중입니다.\n\n` +
+        `이미 미리보기 서버가 떠 있을 수 있습니다. 브라우저에서 먼저 확인해 보세요:\n` +
+        `  http://localhost:${port}\n\n` +
+        `다른 포트로 띄우려면:\n  node src/serve.mjs --port ${port + 1}\n`,
+    );
+  } else if (err.code === 'EACCES') {
+    console.error(`\n${port} 포트를 열 권한이 없습니다. 1024보다 큰 번호를 쓰세요.\n`);
+  } else {
+    console.error(`\n서버를 시작하지 못했습니다: ${err.message}\n`);
+  }
+  process.exit(1);
+});
 
 server.listen(port, () => {
   console.log(`미리보기: http://localhost:${port}  (Ctrl+C로 종료)`);
