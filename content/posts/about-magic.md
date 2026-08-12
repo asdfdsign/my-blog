@@ -1,6 +1,7 @@
 ---
 title: …에 관해
 date: 2026-08-11
+series: about
 tags: 창작, 마술, 정리중
 draft: true
 description: 마술사에게 가장 중요한 것은 자신감과 위엄이라는 생각에서 출발한 단상 모음.

@@ -64,22 +64,58 @@ ${body}
 `;
 }
 
-export function indexPage(posts) {
-  const items = posts
-    .map(
-      (post) => `  <li class="post-item">
-    <h2><a href="/posts/${post.slug}/">${escapeHtml(post.title)}</a></h2>
-    <p class="meta">${dateEl(post.date)}${draftBadge(post)}${tagList(post.tags)}</p>
-    ${post.description ? `<p class="excerpt">${escapeHtml(post.description)}</p>` : ''}
-  </li>`,
-    )
-    .join('\n');
+// 목록에는 글과 시리즈가 섞여 들어온다. 시리즈는 posts 배열을 갖고 있다.
+export function indexPage(entries) {
+  const items = entries.map((entry) => (entry.posts ? seriesItem(entry) : postItem(entry))).join('\n');
 
   const body = `<h1 class="page-title">${escapeHtml(site.title)}</h1>
 <p class="page-lead">${escapeHtml(site.description)}</p>
-${posts.length ? `<ul class="post-list">\n${items}\n</ul>` : '<p>아직 발행된 글이 없습니다.</p>'}`;
+${entries.length ? `<ul class="post-list">\n${items}\n</ul>` : '<p>아직 발행된 글이 없습니다.</p>'}`;
 
   return layout({ title: site.title, description: site.description, canonical: '/', body });
+}
+
+function postItem(post) {
+  return `  <li class="post-item">
+    <h2><a href="/posts/${post.slug}/">${escapeHtml(post.title)}</a></h2>
+    <p class="meta">${dateEl(post.date)}${draftBadge(post)}${tagList(post.tags)}</p>
+    ${post.description ? `<p class="excerpt">${escapeHtml(post.description)}</p>` : ''}
+  </li>`;
+}
+
+function seriesItem(series) {
+  const drafts = series.posts.filter((post) => post.draft).length;
+  const note = drafts > 0 ? ` <span class="draft-badge">초안 ${drafts}</span>` : '';
+  return `  <li class="post-item">
+    <h2><a href="/series/${series.slug}/">${escapeHtml(series.title)}</a></h2>
+    <p class="meta"><span class="series-count">${series.posts.length}편</span>${dateEl(series.date)}${note}</p>
+    <p class="excerpt">${escapeHtml(series.posts[series.posts.length - 1].entry)} 까지</p>
+  </li>`;
+}
+
+export function seriesPage(series) {
+  const items = series.posts
+    .map(
+      (post) => `    <li class="entry-item">
+      <a href="/posts/${post.slug}/">${escapeHtml(post.entry)}</a>
+      <span class="meta">${dateEl(post.date)}${draftBadge(post)}</span>
+    </li>`,
+    )
+    .join('\n');
+
+  const body = `<h1 class="page-title">${escapeHtml(series.title)}</h1>
+<p class="page-lead">${series.posts.length}편</p>
+<ol class="entry-list">
+${items}
+</ol>
+<p class="back"><a href="/">← 글 목록</a></p>`;
+
+  return layout({
+    title: series.title,
+    description: `${series.title} 연재 — 총 ${series.posts.length}편.`,
+    canonical: `/series/${series.slug}/`,
+    body,
+  });
 }
 
 export function postPage(post) {
@@ -91,7 +127,11 @@ export function postPage(post) {
   </header>
   ${post.html}
 </article>
-<p class="back"><a href="/">← 글 목록</a></p>`;
+<p class="back">${
+    post.series
+      ? `<a href="/series/${post.series}/">← ${escapeHtml(post.title)} 연재 목록</a> · `
+      : ''
+  }<a href="/">글 목록</a></p>`;
 
   return layout({
     title: post.title,

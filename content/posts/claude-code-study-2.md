@@ -1,6 +1,7 @@
 ---
 title: 클로드 코드 STUDY
 date: 2026-08-11
+series: claude-code-study
 tags: 학습, 자동화, 스케줄러, 옵시디언, git
 draft: true
 description: 매일 글을 자동으로 올리는 방법을 찾다가 클라우드가 필요 없다는 결론에 닿았고, 오후에는 옵시디언 글을 블로그로 옮겼다.

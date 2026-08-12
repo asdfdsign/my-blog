@@ -1,6 +1,7 @@
 ---
 title: 클로드 코드 STUDY
 date: 2026-08-10
+series: claude-code-study
 tags: 학습, 웹, HTML, CSS, JavaScript
 description: 블로그를 직접 만들면서 이해하게 된 HTML·CSS·JavaScript의 역할 정리.
 ---

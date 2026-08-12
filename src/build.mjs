@@ -10,7 +10,7 @@ import { parseArgs } from 'node:util';
 
 import site from '../site.config.mjs';
 import { renderMarkdown, escapeHtml } from './markdown.mjs';
-import { indexPage, postPage, staticPage } from './template.mjs';
+import { indexPage, postPage, seriesPage, staticPage } from './template.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONTENT = path.join(ROOT, 'content');
@@ -63,6 +63,45 @@ function parseFrontmatter(raw) {
   return { data, body: raw.slice(match[0].length) };
 }
 
+// 본문의 첫 '## 소제목'을 뽑는다. 코드 블록 안의 '#'을 제목으로 오인하지 않도록
+// 펜스 안쪽은 건너뛴다.
+function firstHeading(body) {
+  let inFence = false;
+  for (const line of body.split('\n')) {
+    if (/^(```|~~~)/.test(line.trim())) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    const m = line.match(/^##\s+(.+?)\s*#*\s*$/);
+    if (m) return m[1].trim();
+  }
+  return null;
+}
+
+// 같은 series 값을 가진 글을 하나로 묶는다. 목록 페이지에서 제목이 똑같은 글이
+// 여러 줄 반복되는 걸 막고, 회차를 한자리에서 보게 하려는 것이다.
+function groupSeries(posts) {
+  const map = new Map();
+  for (const post of posts) {
+    if (!post.series) continue;
+    if (!map.has(post.series)) map.set(post.series, []);
+    map.get(post.series).push(post);
+  }
+
+  return [...map.entries()].map(([slug, items]) => {
+    // 회차는 오래된 것부터. 연재는 쌓여온 순서로 읽는 게 자연스럽다.
+    const ordered = [...items].sort((a, b) => (a.date === b.date ? a.slug.localeCompare(b.slug) : a.date < b.date ? -1 : 1));
+    return {
+      slug,
+      title: ordered[0].title,
+      posts: ordered,
+      // 목록에서의 자리는 가장 최근 회차 날짜로 잡는다.
+      date: ordered[ordered.length - 1].date,
+    };
+  });
+}
+
 function loadPosts() {
   const posts = [];
 
@@ -79,9 +118,17 @@ function loadPosts() {
       fail(`${where} — 'date'는 YYYY-MM-DD 형식이어야 합니다 (받은 값: ${data.date}).`);
     }
 
+    if (data.series && !/^[a-z0-9-]+$/.test(data.series)) {
+      fail(`${where} — 'series'는 주소가 되므로 소문자·숫자·하이픈만 씁니다 (받은 값: ${data.series}).`);
+    }
+
     posts.push({
       slug,
       draft: isDraft,
+      series: data.series || null,
+      // 시리즈 목록에 쓸 회차 이름. 본문 첫 소제목이 곧 회차 식별자다
+      // (CLAUDE.md의 시리즈 규칙). 없으면 날짜로 대신한다.
+      entry: firstHeading(body) ?? data.date,
       title: data.title,
       date: data.date,
       description: data.description || '',
@@ -140,9 +187,10 @@ ${items}
 `;
 }
 
-function renderSitemap(posts, pages) {
+function renderSitemap(posts, pages, seriesList) {
   const urls = [
     { loc: `${site.url}/`, lastmod: posts[0]?.date },
+    ...seriesList.map((s) => ({ loc: `${site.url}/series/${s.slug}/`, lastmod: s.date })),
     ...posts.map((p) => ({ loc: `${site.url}/posts/${p.slug}/`, lastmod: p.date })),
     ...pages.map((p) => ({ loc: `${site.url}/${p.slug}/` })),
   ];
@@ -174,7 +222,16 @@ function build() {
   fs.rmSync(DIST, { recursive: true, force: true });
   fs.mkdirSync(DIST, { recursive: true });
 
-  write('index.html', indexPage(posts));
+  const seriesList = groupSeries(posts);
+  // 목록에는 시리즈를 한 줄로, 시리즈에 속하지 않은 글은 그대로 올린다.
+  const listed = [...seriesList, ...posts.filter((post) => !post.series)].sort((a, b) =>
+    a.date === b.date ? a.slug.localeCompare(b.slug) : b.date < a.date ? -1 : 1,
+  );
+
+  write('index.html', indexPage(listed));
+  for (const series of seriesList) {
+    write(path.join('series', series.slug, 'index.html'), seriesPage(series));
+  }
   for (const post of posts) write(path.join('posts', post.slug, 'index.html'), postPage(post));
   for (const page of pages) write(path.join(page.slug, 'index.html'), staticPage(page));
 
@@ -183,8 +240,9 @@ function build() {
   // 피드와 사이트맵에는 초안을 넣지 않는다. --drafts는 화면 확인용이지
   // 발행이 아니고, 실수로 이 산출물을 올리더라도 초안이 새어 나가면 안 된다.
   const published = posts.filter((post) => !post.draft);
+  const publishedSeries = groupSeries(published);
   write('rss.xml', renderRss(published));
-  write('sitemap.xml', renderSitemap(published, pages));
+  write('sitemap.xml', renderSitemap(published, pages, publishedSeries));
 
   const drafts = posts.length - published.length;
   console.log(
