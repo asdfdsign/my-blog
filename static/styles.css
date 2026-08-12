@@ -262,12 +262,12 @@ h2 {
 }
 
 h3 {
-  font-size: 1.125rem;
+  font-size: 1.25rem;
 }
 
+/* h4는 본문과 같은 크기로 두고 굵기로만 구분한다. 본문보다 작으면 제목으로 안 읽힌다. */
 h4 {
-  font-size: 1rem;
-  color: var(--text-muted);
+  font-size: 1.0625rem;
 }
 
 /* 글 안에서 h2는 가장 큰 구획이다. 크기 차이(h2 24px / h3 18px)만으로는 같은 급으로
@@ -514,7 +514,11 @@ th {
   }
 
   h3 {
-    font-size: 1.25rem;
+    font-size: 1.375rem;
+  }
+
+  h4 {
+    font-size: 1.125rem;
   }
 
   .theme-label {
