@@ -208,6 +208,61 @@ ${body}
 `;
 }
 
+// 하위 경로 배포에서 '/styles.css' 같은 루트 절대 경로는 도메인 최상단을 가리켜 404가 된다.
+// 화면에는 아무 경고도 안 뜨고 CSS만 조용히 사라지는 식이라 알아차리기 어렵다.
+// 그래서 문서에 "조심하라"고 적어두는 대신 빌드가 직접 막는다.
+const HTML_PATH_RE = /(?:href|src)="(\/[^"]*)"/g;
+const CSS_PATH_RE = /url\(\s*["']?(\/[^"')]+)/g;
+
+function findBadPaths(text, re) {
+  const bad = [];
+  for (const [, value] of text.matchAll(re)) {
+    // '//example.com'은 프로토콜 상대 URL이라 외부를 가리킨다.
+    if (value.startsWith('//')) continue;
+    if (value === site.base || value.startsWith(`${site.base}/`)) continue;
+    bad.push(value);
+  }
+  return bad;
+}
+
+// outputs: 아직 디스크에 쓰지 않은 { path, contents } 목록.
+function checkBasePaths(outputs) {
+  // 루트 도메인 배포면 base가 빈 문자열이라 어떤 경로든 옳다.
+  if (!site.base) return;
+
+  const problems = [];
+
+  for (const { path: where, contents } of outputs) {
+    if (!where.endsWith('.html')) continue;
+    for (const value of findBadPaths(contents, HTML_PATH_RE)) problems.push({ where, value });
+  }
+
+  // static/ 은 빌드가 손대지 않고 그대로 복사되므로 base가 붙을 기회가 없다.
+  // 원본 쪽을 읽는다 — dist/ 를 지우기 전에 검사를 끝내야 하기 때문이다.
+  if (fs.existsSync(STATIC)) {
+    for (const file of fs.readdirSync(STATIC, { recursive: true })) {
+      const full = path.join(STATIC, String(file));
+      if (!full.endsWith('.css') || !fs.statSync(full).isFile()) continue;
+      const where = path.relative(ROOT, full);
+      const text = fs.readFileSync(full, 'utf8');
+      for (const value of findBadPaths(text, CSS_PATH_RE)) problems.push({ where, value });
+    }
+  }
+
+  if (problems.length === 0) return;
+
+  const list = problems.map(({ where, value }) => `  ${where} → ${value}`).join('\n');
+  fail(
+    `base가 붙지 않은 내부 절대 경로 ${problems.length}건.\n` +
+      `이 사이트는 ${site.base}/ 아래에 배포되므로 그대로 두면 404가 됩니다.\n\n` +
+      `${list}\n\n` +
+      `고치는 법:\n` +
+      `  template.mjs → href("/경로/") 헬퍼를 쓴다\n` +
+      `  styles.css   → url(images/x.png) 처럼 슬래시 없이 상대 경로로 쓴다\n` +
+      `  마크다운 본문 → 파서가 알아서 붙이므로 '/경로/' 그대로 쓰면 된다`,
+  );
+}
+
 function write(relativePath, contents) {
   const target = path.join(DIST, relativePath);
   fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -218,31 +273,45 @@ function build() {
   const posts = loadPosts();
   const pages = loadPages();
 
-  // 여기서부터가 실제 쓰기. 위에서 하나라도 실패했으면 도달하지 않는다.
-  fs.rmSync(DIST, { recursive: true, force: true });
-  fs.mkdirSync(DIST, { recursive: true });
-
   const seriesList = groupSeries(posts);
   // 목록에는 시리즈를 한 줄로, 시리즈에 속하지 않은 글은 그대로 올린다.
   const listed = [...seriesList, ...posts.filter((post) => !post.series)].sort((a, b) =>
     a.date === b.date ? a.slug.localeCompare(b.slug) : b.date < a.date ? -1 : 1,
   );
 
-  write('index.html', indexPage(listed));
-  for (const series of seriesList) {
-    write(path.join('series', series.slug, 'index.html'), seriesPage(series));
-  }
-  for (const post of posts) write(path.join('posts', post.slug, 'index.html'), postPage(post));
-  for (const page of pages) write(path.join(page.slug, 'index.html'), staticPage(page));
-
-  if (fs.existsSync(STATIC)) fs.cpSync(STATIC, DIST, { recursive: true });
-
   // 피드와 사이트맵에는 초안을 넣지 않는다. --drafts는 화면 확인용이지
   // 발행이 아니고, 실수로 이 산출물을 올리더라도 초안이 새어 나가면 안 된다.
   const published = posts.filter((post) => !post.draft);
   const publishedSeries = groupSeries(published);
-  write('rss.xml', renderRss(published));
-  write('sitemap.xml', renderSitemap(published, pages, publishedSeries));
+
+  // 페이지를 전부 메모리에 만든다. 디스크에는 아직 쓰지 않는다 —
+  // 검사에서 걸리면 반쯤 만들어진 사이트가 남으면 안 되기 때문이다.
+  const outputs = [
+    { path: 'index.html', contents: indexPage(listed) },
+    ...seriesList.map((series) => ({
+      path: path.join('series', series.slug, 'index.html'),
+      contents: seriesPage(series),
+    })),
+    ...posts.map((post) => ({
+      path: path.join('posts', post.slug, 'index.html'),
+      contents: postPage(post),
+    })),
+    ...pages.map((page) => ({
+      path: path.join(page.slug, 'index.html'),
+      contents: staticPage(page),
+    })),
+    { path: 'rss.xml', contents: renderRss(published) },
+    { path: 'sitemap.xml', contents: renderSitemap(published, pages, publishedSeries) },
+  ];
+
+  checkBasePaths(outputs);
+
+  // 여기서부터가 실제 쓰기. 위에서 하나라도 실패했으면 도달하지 않는다.
+  fs.rmSync(DIST, { recursive: true, force: true });
+  fs.mkdirSync(DIST, { recursive: true });
+
+  for (const { path: target, contents } of outputs) write(target, contents);
+  if (fs.existsSync(STATIC)) fs.cpSync(STATIC, DIST, { recursive: true });
 
   const drafts = posts.length - published.length;
   console.log(
