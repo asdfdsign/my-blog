@@ -6,6 +6,10 @@ import { escapeHtml } from './markdown.mjs';
 // 저장된 테마를 첫 페인트 '전에' <html>에 반영한다.
 // 이 스크립트는 반드시 <head> 안에 인라인·동기로 있어야 한다. 외부 파일로 빼면
 // 파일을 받아오기 전에 기본 테마로 한 프레임이 그려지면서 흰 화면이 번쩍인다(FOUC).
+// 사이트 내부 링크는 전부 이걸 거친다. 하위 경로 배포(/my-blog/)에서 '/styles.css'가
+// 도메인 최상단을 가리켜 버리는 걸 막는다. 루트 배포면 base가 빈 문자열이라 그대로 통과한다.
+const href = (path) => `${site.base}${path}`;
+
 const THEME_BOOTSTRAP =
   `(function(){try{var t=localStorage.getItem('theme');` +
   `if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}` +
@@ -32,19 +36,19 @@ export function layout({ title, description, canonical, body }) {
 <meta property="og:description" content="${escapeHtml(desc)}">
 <meta property="og:url" content="${escapeHtml(url)}">
 <meta name="twitter:card" content="summary">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="alternate" type="application/rss+xml" title="${escapeHtml(site.title)}" href="/rss.xml">
-<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="${href('/favicon.svg')}" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="${escapeHtml(site.title)}" href="${href('/rss.xml')}">
+<link rel="stylesheet" href="${href('/styles.css')}">
 <script>${THEME_BOOTSTRAP}</script>
 </head>
 <body>
 <a class="skip-link" href="#main">본문으로 건너뛰기</a>
 <header class="site-header">
   <div class="bar">
-    <a class="site-name" href="/">${escapeHtml(site.title)}</a>
+    <a class="site-name" href="${href('/')}">${escapeHtml(site.title)}</a>
     <nav class="site-nav">
-      <a href="/about/">소개</a>
-      <a href="/rss.xml">RSS</a>
+      <a href="${href('/about/')}">소개</a>
+      <a href="${href('/rss.xml')}">RSS</a>
       <button id="theme-toggle" type="button" class="theme-toggle" aria-label="테마 전환">
         <span class="theme-icon" aria-hidden="true"></span>
         <span class="theme-label"></span>
@@ -58,7 +62,7 @@ ${body}
 <footer class="site-footer">
   <p>© ${escapeHtml(site.author)}</p>
 </footer>
-<script src="/theme.js" defer></script>
+<script src="${href('/theme.js')}" defer></script>
 </body>
 </html>
 `;
@@ -77,7 +81,7 @@ ${entries.length ? `<ul class="post-list">\n${items}\n</ul>` : '<p>아직 발행
 
 function postItem(post) {
   return `  <li class="post-item">
-    <h2><a href="/posts/${post.slug}/">${escapeHtml(post.title)}</a></h2>
+    <h2><a href="${href(`/posts/${post.slug}/`)}">${escapeHtml(post.title)}</a></h2>
     <p class="meta">${dateEl(post.date)}${draftBadge(post)}${tagList(post.tags)}</p>
     ${post.description ? `<p class="excerpt">${escapeHtml(post.description)}</p>` : ''}
   </li>`;
@@ -87,7 +91,7 @@ function seriesItem(series) {
   const drafts = series.posts.filter((post) => post.draft).length;
   const note = drafts > 0 ? ` <span class="draft-badge">초안 ${drafts}</span>` : '';
   return `  <li class="post-item">
-    <h2><a href="/series/${series.slug}/">${escapeHtml(series.title)}</a></h2>
+    <h2><a href="${href(`/series/${series.slug}/`)}">${escapeHtml(series.title)}</a></h2>
     <p class="meta"><span class="series-count">${series.posts.length}편</span>${dateEl(series.date)}${note}</p>
     <p class="excerpt">${escapeHtml(series.posts[series.posts.length - 1].entry)} 까지</p>
   </li>`;
@@ -97,7 +101,7 @@ export function seriesPage(series) {
   const items = series.posts
     .map(
       (post) => `    <li class="entry-item">
-      <a href="/posts/${post.slug}/">${escapeHtml(post.entry)}</a>
+      <a href="${href(`/posts/${post.slug}/`)}">${escapeHtml(post.entry)}</a>
       <span class="meta">${dateEl(post.date)}${draftBadge(post)}</span>
     </li>`,
     )
@@ -108,7 +112,7 @@ export function seriesPage(series) {
 <ol class="entry-list">
 ${items}
 </ol>
-<p class="back"><a href="/">← 글 목록</a></p>`;
+<p class="back"><a href="${href('/')}">← 글 목록</a></p>`;
 
   return layout({
     title: series.title,
@@ -129,9 +133,9 @@ export function postPage(post) {
 </article>
 <p class="back">${
     post.series
-      ? `<a href="/series/${post.series}/">← ${escapeHtml(post.title)} 연재 목록</a> · `
+      ? `<a href="${href(`/series/${post.series}/`)}">← ${escapeHtml(post.title)} 연재 목록</a> · `
       : ''
-  }<a href="/">글 목록</a></p>`;
+  }<a href="${href('/')}">글 목록</a></p>`;
 
   return layout({
     title: post.title,

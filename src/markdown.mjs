@@ -22,8 +22,10 @@ const TABLE_SEP_RE = /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/;
 // 없다. 따라서 어떤 입력으로도 이 토큰과 충돌할 수 없다.
 const PH_RE = /<c(\d+)>/g;
 
-export function renderMarkdown(source) {
-  const ctx = { usedIds: new Map() };
+// base: 사이트가 도메인 하위 경로에 배포될 때 본문의 루트 절대 경로('/images/x.png')
+// 앞에 붙는 값. 글쓴이가 배포 위치를 신경 쓰지 않고 '/'로 시작하는 링크를 쓸 수 있게 한다.
+export function renderMarkdown(source, { base = '' } = {}) {
+  const ctx = { usedIds: new Map(), base };
   const lines = String(source)
     .replace(/\r\n?/g, '\n')
     .replace(/\t/g, '  ')
@@ -68,7 +70,7 @@ function renderBlocks(lines, ctx) {
     const heading = line.match(HEADING_RE);
     if (heading) {
       const level = heading[1].length;
-      const inner = renderInline(heading[2]);
+      const inner = renderInline(heading[2], ctx);
       // h2/h3에만 id를 붙인다 — 딥링크가 의미 있는 건 이 레벨뿐이다.
       const id = level === 2 || level === 3 ? ` id="${uniqueId(heading[2], ctx)}"` : '';
       out.push(`<h${level}${id}>${inner}</h${level}>`);
@@ -89,7 +91,7 @@ function renderBlocks(lines, ctx) {
     }
 
     if (isTableStart(lines, i)) {
-      const table = consumeTable(lines, i);
+      const table = consumeTable(lines, i, ctx);
       out.push(table.html);
       i = table.next;
       continue;
@@ -110,7 +112,7 @@ function renderBlocks(lines, ctx) {
       i += 1;
     }
     if (paragraph.length > 0) {
-      out.push(`<p>${renderInline(paragraph.join('\n'))}</p>`);
+      out.push(`<p>${renderInline(paragraph.join('\n'), ctx)}</p>`);
     }
   }
 
@@ -146,7 +148,7 @@ function isTableStart(lines, i) {
   );
 }
 
-function consumeTable(lines, start) {
+function consumeTable(lines, start, ctx) {
   const header = splitRow(lines[start]);
   const aligns = splitRow(lines[start + 1]).map((cell) => {
     const left = cell.startsWith(':');
@@ -166,7 +168,7 @@ function consumeTable(lines, start) {
 
   const cell = (tag, text, index) => {
     const align = aligns[index] ? ` style="text-align:${aligns[index]}"` : '';
-    return `<${tag}${align}>${renderInline(text)}</${tag}>`;
+    return `<${tag}${align}>${renderInline(text, ctx)}</${tag}>`;
   };
 
   const head = `<tr>${header.map((c, n) => cell('th', c, n)).join('')}</tr>`;
@@ -228,7 +230,7 @@ function consumeList(lines, start, ctx) {
   const tag = ordered ? 'ol' : 'ul';
   const body = items
     .map(([first, ...rest]) => {
-      let inner = renderInline(first);
+      let inner = renderInline(first, ctx);
       if (rest.length > 0) {
         const nested = renderBlocks(rest, ctx);
         if (nested) inner += `\n${nested}`;
@@ -240,7 +242,9 @@ function consumeList(lines, start, ctx) {
   return { html: `<${tag}>\n${body}\n</${tag}>`, next: i };
 }
 
-export function renderInline(text) {
+export function renderInline(text, ctx) {
+  const base = ctx?.base ?? '';
+
   // 이스케이프가 먼저다. 이후 규칙은 전부 이 결과 위에서 동작한다.
   let out = escapeHtml(text);
 
@@ -254,11 +258,11 @@ export function renderInline(text) {
   out = out
     .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g, (_, alt, src, title) => {
       const t = title ? ` title="${title}"` : '';
-      return `<img src="${safeUrl(src)}" alt="${alt}"${t} loading="lazy" decoding="async">`;
+      return `<img src="${withBase(safeUrl(src), base)}" alt="${alt}"${t} loading="lazy" decoding="async">`;
     })
     .replace(/\[([^\]]+)\]\(([^)\s]+)(?:\s+&quot;([^&]*)&quot;)?\)/g, (_, label, href, title) => {
       const t = title ? ` title="${title}"` : '';
-      const url = safeUrl(href);
+      const url = withBase(safeUrl(href), base);
       const external = /^https?:/i.test(url) ? ' rel="noopener noreferrer"' : '';
       return `<a href="${url}"${t}${external}>${label}</a>`;
     })
@@ -272,6 +276,13 @@ export function renderInline(text) {
 // javascript: 같은 스킴이 href로 들어가는 걸 막는다. 값은 이미 이스케이프된 상태다.
 function safeUrl(url) {
   return /^\s*javascript:/i.test(url.replace(/&amp;/g, '&')) ? '#' : url;
+}
+
+// '/'로 시작하는 사이트 내부 경로에만 base를 붙인다.
+// '//example.com'은 프로토콜 상대 URL이라 외부를 가리키므로 제외한다.
+function withBase(url, base) {
+  if (!base || !url.startsWith('/') || url.startsWith('//')) return url;
+  return `${base}${url}`;
 }
 
 function uniqueId(rawText, ctx) {

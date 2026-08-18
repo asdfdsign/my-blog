@@ -7,8 +7,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 
+import site from '../site.config.mjs';
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
+
+// 배포처가 도메인 하위 경로(/my-blog/)면 링크도 그 경로로 생성된다. 서버가 이걸 모르면
+// 로컬에서만 전부 404가 나서, 미리보기가 배포본을 확인하는 수단이 못 된다.
+const BASE = site.base;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -46,6 +52,13 @@ function resolveFile(urlPath) {
     return null;
   }
 
+  // base를 벗겨낸 나머지가 dist/ 안의 경로다.
+  if (BASE) {
+    if (decoded === BASE) decoded = '/';
+    else if (decoded.startsWith(`${BASE}/`)) decoded = decoded.slice(BASE.length);
+    else return null;
+  }
+
   const target = path.resolve(DIST, `.${path.posix.normalize(decoded)}`);
 
   // dist/ 밖으로 나가는 경로는 거부한다.
@@ -62,7 +75,17 @@ function resolveFile(urlPath) {
 }
 
 const server = http.createServer((req, res) => {
-  const file = resolveFile(req.url ?? '/');
+  const url = req.url ?? '/';
+
+  // 하위 경로 배포일 때 루트로 들어오면 사이트 위치로 보내준다.
+  // 이게 없으면 localhost:8080을 열었을 때 404만 보이고 어디로 가야 할지 알 수 없다.
+  if (BASE && (url === '/' || url === '')) {
+    res.writeHead(302, { location: `${BASE}/` });
+    res.end();
+    return;
+  }
+
+  const file = resolveFile(url);
 
   if (!file) {
     res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
@@ -104,5 +127,5 @@ server.on('error', (err) => {
 });
 
 server.listen(port, () => {
-  console.log(`미리보기: http://localhost:${port}  (Ctrl+C로 종료)`);
+  console.log(`미리보기: http://localhost:${port}${BASE}/  (Ctrl+C로 종료)`);
 });

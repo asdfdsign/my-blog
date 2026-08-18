@@ -91,3 +91,24 @@ test('원문 HTML은 통과시키지 않는다', () => {
   assert.ok(html.includes('&lt;div'));
   assert.ok(!html.includes('<div class="raw">'));
 });
+
+test('base가 주어지면 내부 절대 경로 앞에 붙는다', () => {
+  const html = renderMarkdown('![그림](/images/a.png)\n\n[소개](/about/)', { base: '/my-blog' });
+  assert.ok(html.includes('src="/my-blog/images/a.png"'));
+  assert.ok(html.includes('href="/my-blog/about/"'));
+});
+
+test('base는 외부 링크와 상대 경로를 건드리지 않는다', () => {
+  const html = renderMarkdown(
+    '[밖](https://example.com/a)\n\n[옆](sibling/)\n\n[프로토콜상대](//cdn.example.com/x.png)',
+    { base: '/my-blog' },
+  );
+  assert.ok(html.includes('href="https://example.com/a"'));
+  assert.ok(html.includes('href="sibling/"'));
+  assert.ok(html.includes('href="//cdn.example.com/x.png"'));
+});
+
+test('base가 없으면 경로가 그대로 남는다', () => {
+  const html = renderMarkdown('[소개](/about/)');
+  assert.ok(html.includes('href="/about/"'));
+});

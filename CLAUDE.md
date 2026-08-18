@@ -35,6 +35,8 @@ scripts/             # 로컬 자동화. 사이트 빌드와 무관하고 dist/�
   study-notify.ps1   # Windows 예약 작업 래퍼 — 위 스크립트 실행 후 알림 팝업
   import-obsidian.mjs # 옵시디언 볼트 → content/posts. 볼트는 읽기만 한다
 dist/                # 빌드 산출물 — git 추적 안 함, 손으로 수정 금지
+.github/workflows/
+  deploy.yml         # master에 푸시하면 깃허브가 빌드해 GitHub Pages에 올린다
 ```
 
 ## 빌드 파이프라인
@@ -152,6 +154,35 @@ node src/serve.mjs
 ```
 
 `node`가 PATH에 없으면 `"C:\Program Files\nodejs\node.exe"` 전체 경로로 호출한다.
+
+## 배포
+
+`https://asdfdsign.github.io/my-blog/` — GitHub Pages. `master`에 **푸시하면** 배포된다.
+커밋만 하고 푸시하지 않으면 사이트는 옛날 상태 그대로다.
+
+```
+파일 수정 → git commit  (내 PC)  →  git push  (여기서부터 사이트에 반영)
+```
+
+배포는 `.github/workflows/deploy.yml`이 한다. 깃허브 서버에서 테스트를 돌리고, 통과하면
+`node src/build.mjs`로 구운 `dist/`를 Pages에 올린다. **테스트가 깨지면 배포되지 않는다.**
+`--drafts`를 붙이지 않으므로 초안은 어떤 경로로도 배포되지 않는다.
+
+### base — 하위 경로 배포
+
+사이트가 도메인 루트가 아니라 `/my-blog/` 아래에 있다. 그래서 `/styles.css` 같은 루트 절대
+경로를 그대로 쓰면 도메인 최상단을 가리켜 **전부 404가 난다.**
+
+`site.config.mjs`의 `url`에서 경로 부분을 뽑아 `base`를 만들고, 내부 링크에 전부 붙인다.
+고칠 자리는 `url` **하나뿐이다.** 루트 도메인으로 옮기면 `base`는 자동으로 빈 문자열이 되고
+코드는 그대로 동작한다.
+
+- 템플릿의 내부 링크는 전부 `href()` 헬퍼를 거친다. `href="/..."`를 직접 쓰지 않는다
+- 본문 마크다운의 `/`로 시작하는 링크·이미지는 파서가 `base`를 붙여준다. 글에는 배포 위치를
+  적지 않는다
+- 외부 URL(`https://`)과 프로토콜 상대 URL(`//`)은 건드리지 않는다
+- `serve.mjs`도 `base`를 벗겨내고 서빙한다. **로컬 미리보기 주소가 배포 주소와 같아야** 미리보기가
+  확인 수단으로 의미가 있다 — `http://localhost:8080/my-blog/`
 
 ## 새 글 추가하기
 

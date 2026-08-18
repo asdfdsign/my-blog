@@ -133,7 +133,7 @@ function loadPosts() {
       date: data.date,
       description: data.description || '',
       tags: data.tags ? data.tags.split(',').map((t) => t.trim()).filter(Boolean) : [],
-      html: renderMarkdown(body),
+      html: renderMarkdown(body, { base: site.base }),
     });
   }
 
@@ -155,7 +155,7 @@ function loadPages() {
       slug,
       title: data.title,
       description: data.description || '',
-      html: renderMarkdown(body),
+      html: renderMarkdown(body, { base: site.base }),
     };
   });
 }
