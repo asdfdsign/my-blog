@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:/Program Files/nodejs/node.exe\" src/build.mjs)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" src/build.mjs *)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" src/serve.mjs)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" src/serve.mjs *)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" --test *)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" scripts/study-check.mjs)",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" scripts/study-check.mjs *)",
+      "Bash(curl -s -o /dev/null -w *)",
+      "mcp__Claude_Browser__read_page",
+      "mcp__Claude_Browser__read_console_messages",
+      "mcp__Claude_Browser__read_network_requests",
+      "mcp__Claude_Browser__get_page_text",
+      "mcp__Claude_Browser__tabs_context",
+      "mcp__Claude_Browser__preview_list",
+      "mcp__Claude_Browser__find"
+    ],
+    "deny": [
+      "Bash(npm install*)",
+      "Bash(npm i *)",
+      "Bash(npm ci*)",
+      "Bash(npm add*)",
+      "Bash(yarn add*)",
+      "Bash(pnpm add*)",
+      "Bash(bun add*)",
+      "Edit(dist/**)",
+      "Write(dist/**)",
+      "Edit(D:/Documents/Obsidian Vault/**)",
+      "Write(D:/Documents/Obsidian Vault/**)",
+      "Bash(git filter-branch*)",
+      "Bash(git push --mirror*)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(rm -rf .git*)",
+      "Bash(curl * | sh*)",
+      "Bash(curl * | bash*)",
+      "Bash(iwr * | iex*)"
+    ]
+  }
+}
