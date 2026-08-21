@@ -15,7 +15,10 @@
       "mcp__Claude_Browser__get_page_text",
       "mcp__Claude_Browser__tabs_context",
       "mcp__Claude_Browser__preview_list",
-      "mcp__Claude_Browser__find"
+      "mcp__Claude_Browser__find",
+      "mcp__Claude_Browser__navigate",
+      "mcp__Claude_Browser__resize_window",
+      "mcp__Claude_Browser__tabs_select"
     ],
     "deny": [
       "Bash(npm install*)",
@@ -31,12 +34,22 @@
       "Write(D:/Documents/Obsidian Vault/**)",
       "Bash(git filter-branch*)",
       "Bash(git push --mirror*)",
-      "Bash(rm -rf /*)",
-      "Bash(rm -rf ~*)",
-      "Bash(rm -rf .git*)",
+      "Bash(rm -rf*)",
+      "Bash(rm -fr*)",
+      "Bash(rm -r -f*)",
+      "Bash(rm -f -r*)",
+      "Bash(sudo*)",
+      "Bash(chmod 777*)",
+      "Bash(chmod -R 777*)",
+      "Bash(chmod a+rwx*)",
       "Bash(curl * | sh*)",
       "Bash(curl * | bash*)",
-      "Bash(iwr * | iex*)"
+      "Bash(curl * | zsh*)",
+      "Bash(wget * | sh*)",
+      "Bash(wget * | bash*)",
+      "Bash(wget * | zsh*)",
+      "Bash(iwr * | iex*)",
+      "Bash(irm * | iex*)"
     ]
   }
 }
